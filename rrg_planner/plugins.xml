@@ -1,0 +1,5 @@
+<library path="rrg_planner">
+  <class name="rrg_planner/RRGPlanner" type="rrg_planner::RRGPlanner" base_class_type="nav2_core::GlobalPlanner">
+    <description>This is an example plugin which produces straight path for now.</description>
+  </class>
+</library>
