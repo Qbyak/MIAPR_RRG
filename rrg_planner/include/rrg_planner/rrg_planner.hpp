@@ -3,7 +3,7 @@
 
 #include <string>
 #include <memory>
-
+#include <random>
 
 #include "rclcpp/rclcpp.hpp"
 #include "geometry_msgs/msg/pose_stamped.hpp"
@@ -17,6 +17,20 @@
 
 namespace rrg_planner
 {
+
+struct GraphNode {
+  double x;
+  double y;
+  int id;
+  std::vector<int> neighbors; // Lista ID połączonych sąsiadów
+  
+  // Zmienne przydatne później do algorytmu Dijkstry/A*
+  double cost_from_start;
+  int parent_id; 
+
+  GraphNode(double x_in, double y_in, int id_in) 
+  : x(x_in), y(y_in), id(id_in), cost_from_start(0.0), parent_id(-1) {}
+};
 
 class RRGPlanner : public nav2_core::GlobalPlanner
 {
@@ -72,10 +86,36 @@ private:
   
   std::string global_frame_, name_;
 
+  // Generator liczb pseudolosowych Mersenne Twister
+  std::mt19937 rng_gen_;
   // ========================================================================
   // TU BĘDĄ ZMIENNE DLA ALGORYTMU RRG
   // ========================================================================
+  std::vector<GraphNode> graph_;        // graf przechowujący wszystkie węzły
+  double step_size_ = 0.5;         // Jak daleko robimy krok od najbliższego węzła
+  double search_radius_ = 1.0;     // Promień, w którym szukamy sąsiadów do połączenia
+  int max_iterations_ = 10000;     // Zabezpieczenie przed nieskończoną pętlą
+  double goal_tolerance_ = 0.25;   // Odległość od mety uznawana za sukces
 
+  // --- FUNKCJE POMOCNICZE ---
+  
+  // Losowanie punktu na mapie
+  std::pair<double, double> sampleRandomPoint();
+  
+  // Szukanie najbliższego istniejącego węzła do wylosowanego punktu
+  int getNearestNodeId(double x, double y);
+  
+  // Sprawdzenie, czy można połączyć dwa punkty bez kolizji (czy linia między nimi jest wolna od przeszkód)
+  bool isCollisionFree(double x1, double y1, double x2, double y2);
+  
+  // Znajdowanie sąsiadów w promieniu search_radius_ do nowego węzła
+  std::vector<int> getNearNeighbors(double x, double y, double radius);
+  
+  // Obliczanie odległości między dwoma punktami
+  double distance(double x1, double y1, double x2, double y2);
+
+  // Ekstrakcja ścieżki z grafu po znalezieniu węzła docelowego
+  nav_msgs::msg::Path extractPath(int start_id, int goal_id);
 };
 
 }  // namespace rrg_planner
